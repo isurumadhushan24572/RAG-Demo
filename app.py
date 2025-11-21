@@ -252,35 +252,46 @@ def generate_solution_with_rag(current_ticket: Ticket, similar_tickets: List[Dic
             context = "No similar past incidents found in the knowledge base (minimum 85% similarity required).\n\n"
         
         # Create prompt template using LangChain
-        system_template = "You are an expert cloud application support engineer. A support team member has received a new incident ticket from application monitoring or end-users."
+        system_template = "You are an expert cloud application support engineer with a focus on methodical, accurate diagnosis. Your primary goal is to perform a deep, step-by-step analysis using all provided context (RAG) to generate a justified Root Cause and a safe, actionable Resolution plan." # <--- STRONGER INSTRUCTION ADDED
         
         human_template = """### Current Incident:
-**Title:** {title}
-**Description:** {description}
-**Category:** {category}
-**Severity:** {severity}
-**Application:** {application}
-**Environment:** {environment}
-**Affected Users:** {affected_users}
+        **Title:** {title}
+        **Description:** {description}
+        **Category:** {category}
+        **Severity:** {severity}
+        **Application:** {application}
+        **Environment:** {environment}
+        **Affected Users:** {affected_users}
 
-{context}
+        {context}
 
-Based on the current incident and similar past incidents (if any), please provide:
+        ---
+        **STEP 1: Contextual Analysis (The Thinking Process)**
 
-1. **Root Cause Analysis:** Explain the likely root cause of this issue based on the symptoms. Consider cloud infrastructure, application code, database, API dependencies, or configuration issues.
+        Before providing the final output, analyze the following:
+        A. **Core Symptom:** Identify the single most critical symptom from the current incident description.
+        B. **Contextual Match:** Compare the Core Symptom against the solutions in the 'Similar Past Cloud Application Issues' (if available). State how the past incidents are related to the current one or why they are *not* a direct match.
+        C. **Initial Hypothesis:** Formulate a working hypothesis for the root cause based on the combined information.
 
-2. **Resolution Steps:** Provide clear, actionable steps to resolve this incident. Include:
-   - Immediate actions to mitigate impact
-   - Diagnostic commands/queries to verify the issue
-   - Fix implementation steps
-   - Verification steps to confirm resolution
-   - Preventive measures to avoid recurrence
+        ---
+        **STEP 2: Solution Generation (The Final Output)**
 
-Be specific to cloud applications, microservices, APIs, databases, and modern DevOps practices. Reference similar past incidents when applicable.
+        Based on your analysis in STEP 1, proceed to generate the final Root Cause and Resolution.
 
-Format your response as:
-ROOT CAUSE: <your analysis here>
-RESOLUTION: <your step-by-step solution here>"""
+        1. **Root Cause Analysis:** Explain the likely root cause of this issue based on the symptoms. Consider cloud infrastructure, application code, database, API dependencies, or configuration issues.
+
+        2. **Resolution Steps:** Provide clear, actionable steps to resolve this incident. Include:
+            - Immediate actions to mitigate impact
+            - Diagnostic commands/queries to verify the issue
+            - Fix implementation steps
+            - Verification steps to confirm resolution
+            - Preventive measures to avoid recurrence
+
+        Be specific to cloud applications, microservices, APIs, databases, and modern DevOps practices. Reference similar past incidents when applicable.
+
+        Format your response STRICTLY as:
+        ROOT CAUSE: <your analysis here>
+        RESOLUTION: <your step-by-step solution here>""" # <--- COT STEPS ADDED
         
         # Create the chat prompt template
         chat_prompt = ChatPromptTemplate.from_messages([
