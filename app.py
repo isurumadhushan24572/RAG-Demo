@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 import json
 import os
 from datetime import datetime
@@ -250,17 +251,17 @@ def generate_solution_with_rag(current_ticket: Ticket, similar_tickets: List[Dic
         else:
             context = "No similar past incidents found in the knowledge base (minimum 85% similarity required).\n\n"
         
-        # Create prompt specific to cloud application support
-        prompt = f"""You are an expert cloud application support engineer. A support team member has received a new incident ticket from application monitoring or end-users.
+        # Create prompt template using LangChain
+        system_template = "You are an expert cloud application support engineer. A support team member has received a new incident ticket from application monitoring or end-users."
         
-### Current Incident:
-**Title:** {current_ticket.title}
-**Description:** {current_ticket.description}
-**Category:** {current_ticket.category}
-**Severity:** {current_ticket.severity}
-**Application:** {current_ticket.application}
-**Environment:** {current_ticket.environment}
-**Affected Users:** {current_ticket.affected_users}
+        human_template = """### Current Incident:
+**Title:** {title}
+**Description:** {description}
+**Category:** {category}
+**Severity:** {severity}
+**Application:** {application}
+**Environment:** {environment}
+**Affected Users:** {affected_users}
 
 {context}
 
@@ -279,11 +280,28 @@ Be specific to cloud applications, microservices, APIs, databases, and modern De
 
 Format your response as:
 ROOT CAUSE: <your analysis here>
-RESOLUTION: <your step-by-step solution here>
-"""
+RESOLUTION: <your step-by-step solution here>"""
+        
+        # Create the chat prompt template
+        chat_prompt = ChatPromptTemplate.from_messages([
+            SystemMessagePromptTemplate.from_template(system_template),
+            HumanMessagePromptTemplate.from_template(human_template)
+        ])
+        
+        # Format the prompt with actual values
+        formatted_prompt = chat_prompt.format_messages(
+            title=current_ticket.title,
+            description=current_ticket.description,
+            category=current_ticket.category,
+            severity=current_ticket.severity,
+            application=current_ticket.application,
+            environment=current_ticket.environment,
+            affected_users=current_ticket.affected_users,
+            context=context
+        )
         
         # Get response from LLM
-        response = llm.invoke(prompt)
+        response = llm.invoke(formatted_prompt)
         response_text = response.content.strip()
         
         # Parse reasoning and solution
